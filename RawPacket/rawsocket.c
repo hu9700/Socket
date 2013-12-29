@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_ether.h>//provide strct ethhdr
-#include <linux.if_packet.h>
+#include <linux/if_packet.h>
 #include <sys/ioctl.h>
 #include <errno.h>
 
@@ -12,7 +12,7 @@ static char *ifname = "wlan1";
 static unsigned char ether_dest[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 static unsigned short ether_protocol = 0xfe;
 static unsigned char data[] = "hello world";
-static unsigned short data_len = strlen(data);
+static unsigned short data_len = sizeof(data);
 
 union ethframe
 {
@@ -70,6 +70,8 @@ char* getIfname(int sockfd)
 {
 	struct ifreq buffer;
 	static char ifname[IFNAMSIZ];
+	int res;
+	
 	memset(&buffer, 0x00, sizeof(buffer));
 	res = ioctl(sockfd, SIOCGIFNAME, ifname);
 	
@@ -102,7 +104,7 @@ int fillEthframe(union ethframe *frame, char *mac_dest, char *mac_source, unsign
 	}
 }
 
-int initSockaddrLowlayer(struct sockaddr *addr, int ifindex,  unsigned char* mac)
+void initSockaddrLowlayer(struct sockaddr *addr, int ifindex,  unsigned char* mac)
 {
 	struct sockaddr_ll *addr_ll = (struct sockaddr_ll *)addr;
 	
@@ -111,7 +113,7 @@ int initSockaddrLowlayer(struct sockaddr *addr, int ifindex,  unsigned char* mac
 	addr_ll->sll_family = PF_PACKET;
 	addr_ll->sll_ifindex = ifindex;
 	addr_ll->sll_halen = ETH_ALEN;
-	memcopy((void *)(addr_ll->sll_addr), (void *)mac, ETH_ALEN);
+	memcpy((void *)(addr_ll->sll_addr), (void *)mac, ETH_ALEN);
 }
 
 int main(int argc, char **argv)
@@ -120,17 +122,21 @@ int main(int argc, char **argv)
 	struct sockaddr addr_source;
 	struct sockaddr addr_dest;
 	union ethframe frame_buff;
+	int frame_len;
 //	unsigned char data[ETH_FRAME_LEN];
 //	int data_len = 0;
 //	char *ifname = "wlan1";
 //	unsigned char ether_dest[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 //	unsigned short ether_protocol = 0xfe;
+	unsigned char ether_source[ETH_ALEN];
+	unsigned char *ether_source_temp;
 	int ifindex;
+	int res;
 	
 	memset((void *)(&frame_buff), 0, sizeof(union ethframe));
 	memset((void *)data, 0, ETH_FRAME_LEN);
 	
-	sockfd = socket(AF_PACKET, SOCK_RAW, htons(proto));//only for root
+	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ether_protocol));//only for root
 	if(sockfd < 0)
 	{
 		perror("socket fail");
@@ -138,8 +144,29 @@ int main(int argc, char **argv)
 	}
 	
 	ifindex = getIndexFromInterface(sockfd, ifname);
+	if(ifindex < 0)
+	{
+		exit(1);
+	}
 	
+	ether_source_temp = getMacFromInterface(sockfd, ifname);
+	if(ether_source_temp != NULL)
+	{
+		exit(1);
+	}
+	memcpy(ether_source, ether_source_temp, ETH_ALEN);
 	
+	res = fillEthframe(&frame_buff, ether_dest, ether_source, ether_protocol, data, data_len);
+	if(res < 0)
+	{
+		exit(1);
+	}
+	frame_len = ETH_FRAME_LEN - ETH_DATA_LEN + data_len;
 	
+	initSockaddrLowlayer(&addr_dest, ifindex, ether_dest);
+	initSockaddrLowlayer(&addr_source, ifindex, ether_source);
 	
+	sendto(sockfd, frame_buff.buffer, frame_len, 0, &addr_dest, sizeof(struct sockaddr));
+	
+	return 0;	
 }

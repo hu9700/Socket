@@ -73,9 +73,11 @@ int main(int argc, char **argv)
 				//code for test
 				struct sockaddr_ll *addr_ll_get = (struct sockaddr_ll *)(&addr_get);
 				
+				printf("FRAME_%d\n", count ++);
+		
 				if(strncmp(addr_ll_get->sll_addr, mac_from, sizeof(mac_from)) == 0)
 				{
-					printf("get one from host %d\n", count ++);
+					printf("get one from host %d\n", count);
 				}
 		
 	

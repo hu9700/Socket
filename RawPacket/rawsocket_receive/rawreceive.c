@@ -60,6 +60,7 @@ int main(int argc, char **argv)
 	{	
 		memset(thread_struct.thread_list, 0, sizeof(thread_struct.thread_list));
 		thread_struct.thread_number = 0;
+		unsigned int count = 0;
 //		pthread_mutex_init(thread_struct.mutex, NULL);
 		
 		while(1)
@@ -69,8 +70,13 @@ int main(int argc, char **argv)
 
 			if(frame_len_get > 0)
 			{
+				//code for test
+				struct sockaddr_ll *addr_ll_get = (struct sockaddr_ll *)(&addr_get);
 				
-	
+				if(strncmp(addr_ll_get.sll_addr, mac_from, sizeof(mac_from)) == 0)
+				{
+					printf("get one from host %d\n", count ++);
+				}
 		
 	
 			}

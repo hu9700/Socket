@@ -25,7 +25,7 @@ static struct thread_struct thread_struct;
 int main(int argc, char **argv)
 {
 	char *ifname = "eth0";
-	unsigned short ether_protocol = 1;//0xfe;
+	unsigned short ether_protocol = ETH_P_ALL;//0xfe;
 	int sockfd = 0;
 	int ifindex = 0;
 	union ethframe frame_buff;

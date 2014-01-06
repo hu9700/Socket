@@ -11,6 +11,7 @@
 #include "../rawlib/rawlib.h"
 
 #define MAX_THREAD_NUM 256
+#define HU_DEBUG
 
 struct thread_struct
 {
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
 	memset(&frame_buff, 0, sizeof(frame_buff));
 	memset(data_buff, 0, sizeof(data_buff));
 	memset(&addr_self, 0, sizeof(addr_self));
-//	memset(&addr_from, 0, sizeof(addr_from));
+	memset(&addr_from, 0, sizeof(addr_from));
 	memset(&addr_get, 0, sizeof(addr_get));		
 	
 	sockfd = socket(AF_PACKET, SOCK_RAW, htons(ether_protocol));
@@ -50,10 +51,25 @@ int main(int argc, char **argv)
 	
 	ifindex = getIndexFromInterface(sockfd, ifname);
 	if(ifindex < 0)goto errorhandle;
+	#ifdef HU_DEBUG
+	printf("ifindex is %d\n", ifindex);
+	#endif
 	
 	mac_temp = getMacFromInterface(sockfd, ifname);
 	if(mac_temp == NULL)goto errorhandle;
 	memcpy(mac_self, mac_temp, ETH_ALEN);
+	#ifdef HU_DEBUG
+	{
+		int count = 0;
+		
+		printf("mac is ");
+		for(count = 0; count < ETH_ALEN; count ++)
+		{
+			printf("0x%x ", mac_self[count]);
+		}
+		printf("\n");
+	}
+	#endif
 	
 	initSockaddrLowlayer(&addr_self, ifindex, mac_self);
 	
